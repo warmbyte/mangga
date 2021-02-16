@@ -1,10 +1,33 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Box, Stack, Heading, Avatar, Wrap, WrapItem } from "@chakra-ui/react";
-
-const dummyData = Array(5).fill("");
-const dummyListeners = Array(5).fill("");
+import { useRouter } from "next/router";
+import { usePeer } from "@hooks";
+import { useAudioStream } from "@hooks";
 
 export const RoomDetail: React.FC = () => {
+  const { createPeer, data } = usePeer();
+  const myStream = useAudioStream();
+  const { parties } = data;
+  const router = useRouter();
+  const audioContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (router?.query?.slug && !data?.isHost && !window["peer"] && myStream) {
+      createPeer(false, router?.query?.slug, myStream);
+    }
+  }, [router?.query?.slug, myStream]);
+
+  useEffect(() => {
+    if (audioContainerRef.current) {
+      parties.forEach((stream) => {
+        const audioNode = document.createElement("audio");
+        audioNode.autoplay = true;
+        audioNode.srcObject = stream;
+        audioContainerRef.current.appendChild(audioNode);
+      });
+    }
+  }, [parties]);
+
   return (
     <Box>
       <Stack spacing="2rem">
@@ -13,10 +36,10 @@ export const RoomDetail: React.FC = () => {
         </Stack>
         <Stack>
           <Box>
-            <Heading size="sm">Speakers ({dummyData.length})</Heading>
+            <Heading size="sm">Speakers ({parties.length})</Heading>
           </Box>
           <Wrap spacing="1.5rem" justify="flex-start" align="center">
-            {dummyData.map((_, index) => (
+            {parties.map((_, index) => (
               <WrapItem
                 alignItems="center"
                 justifyContent="center"
@@ -32,7 +55,7 @@ export const RoomDetail: React.FC = () => {
           </Wrap>
         </Stack>
 
-        <Stack>
+        {/* <Stack>
           <Box>
             <Heading size="sm">Listeners ({dummyListeners.length})</Heading>
           </Box>
@@ -51,8 +74,9 @@ export const RoomDetail: React.FC = () => {
               </WrapItem>
             ))}
           </Wrap>
-        </Stack>
+        </Stack> */}
       </Stack>
+      <Box ref={audioContainerRef} />
     </Box>
   );
 };
