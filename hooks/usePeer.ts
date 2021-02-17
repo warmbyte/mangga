@@ -44,16 +44,15 @@ export const usePeer = () => {
         if (!isHost && targetConnection) {
           const conn = newPeer.connect(targetConnection);
 
-          conn.on("call", (call) => {
-            call.answer(myStream);
-            call.on("stream", (remoteStream) => {
-              setParties([...parties, remoteStream]);
-            });
+          const call = newPeer.call(targetConnection, myStream);
+
+          call.on("stream", (remoteStream) => {
+            setParties([...parties, remoteStream]);
           });
 
-          // conn.on("open", () => {
-          //   conn.send("haha");
-          // });
+          conn.on("open", () => {
+            conn.send("haha");
+          });
         }
       });
 
@@ -65,12 +64,7 @@ export const usePeer = () => {
       });
 
       newPeer.on("connection", function (c) {
-        const call = newPeer.call(c.id, myStream);
-
-        call.on("stream", (remoteStream) => {
-          setParties([...parties, remoteStream]);
-        });
-        // c.on("data", console.log);
+        c.on("data", console.log);
       });
     }
   };
