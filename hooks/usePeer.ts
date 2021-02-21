@@ -1,15 +1,22 @@
 import { useState, useEffect } from "react";
 import { atom, useRecoilState } from "recoil";
+import { getConnections, broadcast } from "../lib";
 
 const partiesAtom = atom<MediaStream[]>({
   key: "partiesAtom",
   default: [],
 });
 
-const peerAtom = atom({
+export const identityAtom = atom<{ name?: string; streamId?: string }[]>({
+  key: "identityAtom",
+  default: [],
+});
+
+export const peerAtom = atom({
   key: "peerAtom",
   default: {
     id: null,
+    roomName: "",
     isHost: false,
   },
 });
@@ -23,59 +30,67 @@ export const usePeer = () => {
   const [loading] = useState(false);
   const [parties, setParties] = useRecoilState(partiesAtom);
   const [peer, setPeer] = useRecoilState(peerAtom);
-  const [users] = useRecoilState(UsersAtom);
+  const [identity, setIdentity] = useRecoilState(identityAtom);
 
   useEffect(() => {
     if (!window["Peer"]) {
       window["Peer"] = require("peerjs").default;
     }
 
-    if (!window["peers"]) {
-      window["peers"] = {};
-    }
     window.addEventListener("beforeunload", () => {
       if (window["peer"]) {
         window["peer"]?.destroy();
       }
     });
+
+    setInterval(() => {
+      setParties(window["parties"] ?? []);
+      setIdentity(window["identity"] ?? []);
+    }, 2000);
   }, []);
 
-  const createPeer = (isHost = false, targetConnection = null, myStream) => {
+  const createPeer = (
+    isHost = false,
+    targetConnection = null,
+    myStream: MediaStream,
+    roomName?: string
+  ) => {
     if (!window["peer"]) {
-      // setLoading(true);
-      const newPeer = new Peer();
-      newPeer.on("open", () => {
-        if (newPeer.id === null && window["peer"] !== null) {
-          newPeer.id = peer?.id;
+      const myPeer = new Peer();
+      window["parties"] = [myStream];
+
+      myPeer.on("open", () => {
+        if (myPeer.id === null && window["peer"] !== null) {
+          myPeer.id = peer?.id;
         } else {
-          setPeer({ id: newPeer.id, isHost });
-          window["peer"] = newPeer;
+          setPeer({ id: myPeer.id, roomName: roomName ?? "", isHost });
+          window["peer"] = myPeer;
         }
+
         if (!isHost && targetConnection) {
-          const conn = newPeer.connect(targetConnection);
+          const hostConnection = myPeer.connect(targetConnection);
+          let hostCall = myPeer.call(targetConnection, myStream);
 
-          let call = newPeer.call(targetConnection, myStream);
-
-          call.on("stream", (remoteStream) => {
-            setParties([...parties, remoteStream]);
+          hostCall.on("stream", (remoteStream) => {
+            window["parties"] = [...(window["parties"] ?? []), remoteStream];
           });
 
-          conn.on("data", function (data) {
+          hostConnection.on("data", (data) => {
             console.log(data);
+            if (data?.type === "roomName") {
+              setPeer({ ...peer, roomName: data.roomName });
+            }
 
             if (data?.type === "party") {
-              data?.connections?.forEach((i) => {
-                if (i !== newPeer.id) {
-                  const otherClientConn = newPeer.connect(i);
+              data?.connections?.forEach((connectionId: string) => {
+                if (connectionId !== myPeer.id) {
+                  const otherClientCall = myPeer.call(connectionId, myStream);
 
-                  otherClientConn.on("data", function (otherData) {
-                    console.log(otherData);
-                  });
-
-                  let otherCall = newPeer.call(i, myStream);
-
-                  otherCall.on("stream", (remoteStreamOther) => {
-                    setParties([...parties, remoteStreamOther]);
+                  otherClientCall.on("stream", (remoteStreamOther) => {
+                    window["parties"] = [
+                      ...(window["parties"] ?? []),
+                      remoteStreamOther,
+                    ];
                   });
                 }
               });
@@ -84,47 +99,18 @@ export const usePeer = () => {
         }
       });
 
-      newPeer.on("connection", (conn) => {
-        const connections = Array.from(
-          window["peer"]._connections.entries()
-        ).map((a) => {
-          return a[0];
-        });
-        Array.from(window["peer"]._connections.entries()).forEach((a) => {
-          a[1]?.[0]?.send({ type: "party", connections });
-        });
-
-        conn.on("data", function (data) {
-          console.log(data);
-        });
+      myPeer.on("connection", () => {
+        const connections = getConnections();
+        broadcast({ type: "party", connections });
+        broadcast({ type: "roomName", roomName: peer.roomName });
       });
 
-      newPeer.on("call", (call) => {
+      myPeer.on("call", (call) => {
         call.answer(myStream);
         call.on("stream", (remoteStream) => {
-          setParties([...parties, remoteStream]);
+          window["parties"] = [...(window["parties"] ?? []), remoteStream];
         });
       });
-      // newPeer.on("connection", function (c) {
-      //   setUsers([...users, new Date().getTime()]);
-      //   c.on("data", (data: any) => {
-      //     if (!isHost) {
-      //       if (data?.type === "newConnection") {
-      //         let call = newPeer.call(data?.id, myStream);
-      //         call.on("stream", (remoteStream) => {
-      //           setParties([...parties, remoteStream]);
-      //         });
-      //         call.on("error", () => {
-      //           call = newPeer.call(data?.id, myStream);
-      //         });
-      //       }
-      //     }
-      //   });
-      // });
-      // newPeer.on("disconnected", () => {
-      //   newPeer.reconnect();
-      // });
-      // newPeer.on("error", console.error);
     }
   };
 
@@ -133,7 +119,6 @@ export const usePeer = () => {
     loading,
     data: {
       ...peer,
-      users,
       parties,
     },
   };

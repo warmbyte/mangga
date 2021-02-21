@@ -1,17 +1,23 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { Stack, Button, Heading, Text } from "@chakra-ui/react";
+import { Input, Stack, Button, Heading, Text } from "@chakra-ui/react";
 import { usePeer } from "@hooks";
 import { useAudioStream } from "@hooks";
 
 export default function Home() {
   const router = useRouter();
   const myStream = useAudioStream();
+  const [roomName, setRoomName] = useState("");
+  const [name, setName] = useState("");
   const { createPeer, data } = usePeer();
   const { id } = data;
 
   const createRoom = () => {
-    createPeer(true, null, myStream);
+    window["identity"] = [
+      { name, streamId: myStream?.id },
+      ...(window["identity"] ?? []),
+    ];
+    createPeer(true, null, myStream, roomName);
   };
 
   useEffect(() => {
@@ -33,7 +39,24 @@ export default function Home() {
           <Heading textAlign="center">Rumah Kumpul</Heading>
           <Text>Tempat semua orang berkumpul ria</Text>
         </Stack>
-        <Button onClick={createRoom} size="lg" colorScheme="pink">
+        <Stack>
+          <Input
+            value={roomName}
+            onChange={(e) => setRoomName(e.target.value)}
+            placeholder="Nama Ruangan"
+          />
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nama Kamu"
+          />
+        </Stack>
+        <Button
+          disabled={!name || !roomName}
+          onClick={createRoom}
+          size="lg"
+          colorScheme="pink"
+        >
           Buat Ruangan
         </Button>
       </Stack>
