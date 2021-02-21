@@ -54,7 +54,12 @@ export const usePeer = () => {
     roomName?: string
   ) => {
     if (!window["peer"]) {
-      const myPeer = new Peer();
+      const myPeer = new Peer(null, {
+        host: "peer.warmbyte.com",
+        port: 443,
+        path: "/myapp",
+        secure: true,
+      });
       window["parties"] = [myStream];
 
       myPeer.on("open", () => {
