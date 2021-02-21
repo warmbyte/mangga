@@ -11,7 +11,7 @@ class MyDocument extends Document {
       <Html>
         <Head>
           <link rel="preconnect" href="https://fonts.gstatic.com" />
-          <script defer src="/peerjs.min.js"></script>
+          <script defer src="/peerjs.js"></script>
         </Head>
         <body>
           <Main />
