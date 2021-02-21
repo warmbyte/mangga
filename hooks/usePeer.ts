@@ -30,7 +30,6 @@ export const usePeer = () => {
   const [loading] = useState(false);
   const [parties, setParties] = useRecoilState(partiesAtom);
   const [peer, setPeer] = useRecoilState(peerAtom);
-  const [identity, setIdentity] = useRecoilState(identityAtom);
 
   useEffect(() => {
     if (!window["Peer"]) {
@@ -45,7 +44,6 @@ export const usePeer = () => {
 
     setInterval(() => {
       setParties(window["parties"] ?? []);
-      setIdentity(window["identity"] ?? []);
     }, 2000);
   }, []);
 
