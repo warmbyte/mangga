@@ -20,10 +20,10 @@ export const UsersAtom = atom({
 });
 
 export const usePeer = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [parties, setParties] = useRecoilState(partiesAtom);
   const [peer, setPeer] = useRecoilState(peerAtom);
-  const [users, setUsers] = useRecoilState(UsersAtom);
+  const [users] = useRecoilState(UsersAtom);
 
   useEffect(() => {
     if (!window["Peer"]) {
