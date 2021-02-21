@@ -6,8 +6,8 @@ import { useAudioStream } from "@hooks";
 
 export const RoomDetail: React.FC = () => {
   const { createPeer, data } = usePeer();
+  const { parties, users } = data;
   const myStream = useAudioStream();
-  const { parties } = data;
   const router = useRouter();
   const audioContainerRef = useRef<HTMLDivElement>(null);
 
@@ -20,10 +20,13 @@ export const RoomDetail: React.FC = () => {
   useEffect(() => {
     if (audioContainerRef.current) {
       parties.forEach((stream) => {
-        const audioNode = document.createElement("audio");
-        audioNode.autoplay = true;
-        audioNode.srcObject = stream;
-        audioContainerRef.current.appendChild(audioNode);
+        if (!document.getElementById(stream.id)) {
+          const audioNode = document.createElement("audio");
+          audioNode.id = stream.id;
+          audioNode.autoplay = true;
+          audioNode.srcObject = stream;
+          audioContainerRef.current.appendChild(audioNode);
+        }
       });
     }
   }, [parties]);
@@ -36,10 +39,10 @@ export const RoomDetail: React.FC = () => {
         </Stack>
         <Stack>
           <Box>
-            <Heading size="sm">Speakers ({parties.length})</Heading>
+            <Heading size="sm">Speakers ({users.length})</Heading>
           </Box>
           <Wrap spacing="1.5rem" justify="flex-start" align="center">
-            {parties.map((_, index) => (
+            {users.map((_, index) => (
               <WrapItem
                 alignItems="center"
                 justifyContent="center"

@@ -14,10 +14,16 @@ const peerAtom = atom({
   },
 });
 
+export const UsersAtom = atom({
+  key: "usersAtom",
+  default: [new Date().getTime()],
+});
+
 export const usePeer = () => {
   const [loading, setLoading] = useState(false);
   const [parties, setParties] = useRecoilState(partiesAtom);
   const [peer, setPeer] = useRecoilState(peerAtom);
+  const [users, setUsers] = useRecoilState(UsersAtom);
 
   useEffect(() => {
     if (!window["Peer"]) {
@@ -49,7 +55,7 @@ export const usePeer = () => {
 
         if (!isHost && targetConnection) {
           const conn = newPeer.connect(targetConnection);
-          const call = newPeer.call(targetConnection, myStream);
+          let call = newPeer.call(targetConnection, myStream);
 
           call.on("stream", (remoteStream) => {
             setParties([...parties, remoteStream]);
@@ -71,24 +77,38 @@ export const usePeer = () => {
             partyCon.send({ type: "newConnection", id: call.peer });
           });
         }
-        window["peers"] = {
-          ...window["peers"],
-          [call.peer]: newPeer.connect(call.peer),
-        };
+
+        const anotherPeer = newPeer.connect(call.peer);
+        anotherPeer.on("open", () => {
+          window["peers"] = {
+            ...window["peers"],
+            [call.peer]: newPeer.connect(call.peer),
+          };
+        });
       });
 
       newPeer.on("connection", function (c) {
+        setUsers([...users, new Date().getTime()]);
         c.on("data", (data: any) => {
           if (!isHost) {
             if (data?.type === "newConnection") {
-              const call = newPeer.call(data?.id, myStream);
+              let call = newPeer.call(data?.id, myStream);
               call.on("stream", (remoteStream) => {
                 setParties([...parties, remoteStream]);
+              });
+              call.on("error", () => {
+                call = newPeer.call(data?.id, myStream);
               });
             }
           }
         });
       });
+
+      newPeer.on("disconnected", () => {
+        newPeer.reconnect();
+      });
+
+      newPeer.on("error", console.error);
     }
   };
 
@@ -97,6 +117,7 @@ export const usePeer = () => {
     loading,
     data: {
       ...peer,
+      users,
       parties,
     },
   };
