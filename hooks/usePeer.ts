@@ -82,7 +82,7 @@ export const usePeer = () => {
         anotherPeer.on("open", () => {
           window["peers"] = {
             ...window["peers"],
-            [call.peer]: newPeer.connect(call.peer),
+            [call.peer]: anotherPeer,
           };
         });
       });
