@@ -21,6 +21,9 @@ export const usePeer = () => {
   const [peer, setPeer] = useRecoilState(peerAtom);
 
   useEffect(() => {
+    if (!window["peers"]) {
+      window["peers"] = {};
+    }
     window.addEventListener("beforeunload", () => {
       if (window["peer"]) {
         window["peer"]?.destroy();
@@ -43,7 +46,6 @@ export const usePeer = () => {
 
         if (!isHost && targetConnection) {
           const conn = newPeer.connect(targetConnection);
-
           const call = newPeer.call(targetConnection, myStream);
 
           call.on("stream", (remoteStream) => {
@@ -61,10 +63,28 @@ export const usePeer = () => {
         call.on("stream", (remoteStream) => {
           setParties([...parties, remoteStream]);
         });
+        if (isHost) {
+          Object.values(window["peers"]).map((partyCon: any) => {
+            partyCon.send({ type: "newConnection", id: call.peer });
+          });
+        }
+        window["peers"] = {
+          ...window["peers"],
+          [call.peer]: newPeer.connect(call.peer),
+        };
       });
 
       newPeer.on("connection", function (c) {
-        c.on("data", console.log);
+        c.on("data", (data: any) => {
+          if (!isHost) {
+            if (data?.type === "newConnection") {
+              const call = newPeer.call(data?.id, myStream);
+              call.on("stream", (remoteStream) => {
+                setParties([...parties, remoteStream]);
+              });
+            }
+          }
+        });
       });
     }
   };

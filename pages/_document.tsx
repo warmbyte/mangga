@@ -10,7 +10,6 @@ class MyDocument extends Document {
     return (
       <Html>
         <Head>
-          <title>Rumah Kumpul</title>
           <link rel="preconnect" href="https://fonts.gstatic.com" />
           <script
             defer
