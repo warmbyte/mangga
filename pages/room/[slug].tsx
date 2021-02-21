@@ -1,5 +1,13 @@
-import React, { useEffect, useRef } from "react";
-import { Box, Stack, Heading, Avatar, Wrap, WrapItem } from "@chakra-ui/react";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Box,
+  Stack,
+  Heading,
+  Avatar,
+  Wrap,
+  WrapItem,
+  Input,
+} from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { usePeer } from "@hooks";
 import { useAudioStream } from "@hooks";
@@ -7,6 +15,8 @@ import { useAudioStream } from "@hooks";
 export const RoomDetail: React.FC = () => {
   const { createPeer, data } = usePeer();
   const { parties, users } = data;
+  const [chats, setChats] = useState([]);
+  const [chat, setChat] = useState("");
   const myStream = useAudioStream();
   const router = useRouter();
   const audioContainerRef = useRef<HTMLDivElement>(null);
@@ -16,6 +26,28 @@ export const RoomDetail: React.FC = () => {
       createPeer(false, router?.query?.slug, myStream);
     }
   }, [router?.query?.slug, myStream]);
+
+  const sendChat = (e) => {
+    e.preventDefault();
+    Array.from(window["peer"]._connections.entries()).forEach((a) => {
+      a[1]?.[0]?.send(chat);
+    });
+    handleChat(chat);
+  };
+
+  const handleChat = (data) => {
+    if (typeof data === "string") {
+      setChats([...chats, data]);
+    }
+  };
+
+  useEffect(() => {
+    if (window["peer"]) {
+      window["peer"].on("connection", (conn) => {
+        conn.on("data", handleChat);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (audioContainerRef.current) {
@@ -57,6 +89,12 @@ export const RoomDetail: React.FC = () => {
             ))}
           </Wrap>
         </Stack>
+        <form onSubmit={sendChat}>
+          <Input value={chat} onChange={(e) => setChat(e.target.value)} />
+        </form>
+        {chats.map((data, id) => (
+          <p key={id}>{data}</p>
+        ))}
 
         {/* <Stack>
           <Box>
