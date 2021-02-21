@@ -15,12 +15,15 @@ const peerAtom = atom({
 });
 
 export const usePeer = () => {
-  // const myStream = useAudioStream();
   const [loading, setLoading] = useState(false);
   const [parties, setParties] = useRecoilState(partiesAtom);
   const [peer, setPeer] = useRecoilState(peerAtom);
 
   useEffect(() => {
+    if (!window["Peer"]) {
+      window["Peer"] = require("peerjs").default;
+    }
+
     if (!window["peers"]) {
       window["peers"] = {};
     }

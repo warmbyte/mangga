@@ -11,16 +11,7 @@ export const useAudioStream = () => {
 
   useEffect(() => {
     if (!stream) {
-      const getUserMedia: typeof navigator.getUserMedia =
-        navigator.getUserMedia ||
-        // @ts-ignore
-        navigator.webkitGetUserMedia ||
-        // @ts-ignore
-        navigator.mozGetUserMedia ||
-        // @ts-ignore
-        navigator.msGetUserMedia;
-
-      getUserMedia(
+      navigator.getUserMedia(
         { audio: true, video: false },
         (audioStream) => {
           setStream(audioStream);
